@@ -154,6 +154,18 @@ function generateHtml(): string {
       --max-width: 720px;
     }
 
+    [data-theme="light"] {
+      --bg: #ffffff;
+      --bg-card: #f6f8fa;
+      --bg-hover: #eef1f5;
+      --border: #d0d7de;
+      --text: #1f2328;
+      --text-muted: #656d76;
+      --accent: #e5550d;
+      --accent-dim: rgba(229, 85, 13, 0.12);
+      --link: #0969da;
+    }
+
     body {
       font-family: var(--font);
       background: var(--bg);
@@ -191,6 +203,26 @@ function generateHtml(): string {
       font-size: 12px;
       font-weight: 600;
     }
+    .header .spacer { flex: 1; }
+    .theme-toggle {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      cursor: pointer;
+      padding: 6px 10px;
+      font-size: 16px;
+      line-height: 1;
+      transition: background 0.15s, border-color 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .theme-toggle:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent);
+    }
+
     .header .live-dot {
       width: 8px; height: 8px;
       background: #3fb950;
@@ -330,6 +362,90 @@ function generateHtml(): string {
     }
     .article-body a { color: var(--link); }
 
+    /* --- Download Dropdown --- */
+    .download-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    .download-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      cursor: pointer;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-family: var(--font);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .download-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent);
+    }
+    .download-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .download-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      min-width: 160px;
+      z-index: 150;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      overflow: hidden;
+      animation: dropIn 0.15s ease;
+    }
+    .download-menu.open { display: block; }
+    @keyframes dropIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .download-menu button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px 14px;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.1s;
+    }
+    .download-menu button:hover {
+      background: var(--bg-hover);
+    }
+    .download-menu button span.dl-icon {
+      font-size: 15px;
+      width: 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .download-menu .dl-label { flex: 1; }
+    .download-menu .dl-ext {
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 2px 6px;
+      background: var(--accent-dim);
+      border-radius: 4px;
+    }
+
     /* --- Loading / Empty --- */
     .loading, .empty {
       text-align: center;
@@ -338,6 +454,28 @@ function generateHtml(): string {
     }
     .loading { font-size: 14px; }
     .empty { font-size: 16px; }
+
+    /* --- Print styles for PDF export --- */
+    @media print {
+      .header, .article-header .back, .download-wrapper, .toast { display: none !important; }
+      body {
+        background: #fff !important;
+        color: #000 !important;
+        font-size: 12pt;
+      }
+      .container { max-width: 100%; padding: 0; }
+      .article-header { border-bottom: 1px solid #ccc; }
+      .article-header h1 { font-size: 24pt; color: #000; }
+      .article-header .subtitle { color: #444; }
+      .article-header .meta { color: #666; }
+      .article-body { font-size: 11pt; line-height: 1.6; }
+      .article-body pre {
+        background: #f5f5f5 !important;
+        border: 1px solid #ddd;
+      }
+      .article-body a { color: #000; text-decoration: underline; }
+      .article-body img { max-width: 100%; }
+    }
 
     /* --- Toast notification --- */
     .toast {
@@ -364,12 +502,41 @@ function generateHtml(): string {
     <h1 onclick="navigateTo('/')">Substack Scraper</h1>
     <div class="live-dot" id="liveDot" title="Live"></div>
     <span class="badge" id="articleCount">...</span>
+    <div class="spacer"></div>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
   </div>
   <div class="container" id="app">
     <div class="loading">Loading...</div>
   </div>
 
   <script>
+    // --- Theme toggle ---
+    function getPreferredTheme() {
+      const stored = localStorage.getItem('theme');
+      if (stored) return stored;
+      return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+
+    function applyTheme(theme) {
+      if (theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
+      const btn = document.getElementById('themeToggle');
+      if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.hasAttribute('data-theme') ? 'light' : 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', next);
+      applyTheme(next);
+    }
+
+    // Apply theme immediately to avoid flash
+    applyTheme(getPreferredTheme());
+
     // --- Simple SPA Router ---
     let currentPath = location.pathname;
 
@@ -402,6 +569,7 @@ function generateHtml(): string {
 
     // --- Dashboard ---
     async function renderDashboard() {
+      currentArticle = null;
       const app = document.getElementById('app');
       app.innerHTML = '<div class="loading">Loading articles...</div>';
 
@@ -451,6 +619,50 @@ function generateHtml(): string {
       }
     }
 
+    // --- Download helpers ---
+    let currentArticle = null;
+
+    function toggleDownloadMenu(e) {
+      e.stopPropagation();
+      const menu = document.getElementById('downloadMenu');
+      menu.classList.toggle('open');
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', () => {
+      const menu = document.getElementById('downloadMenu');
+      if (menu) menu.classList.remove('open');
+    });
+
+    function downloadMarkdown() {
+      if (!currentArticle) return;
+      const a = currentArticle;
+      let content = '# ' + a.title + '\\n\\n';
+      if (a.subtitle) content += '*' + a.subtitle + '*\\n\\n';
+      content += '**Date:** ' + new Date(a.post_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) + '\\n';
+      content += '**Source:** ' + a.canonical_url + '\\n\\n---\\n\\n';
+      content += a.content_markdown || '';
+
+      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = (a.slug || 'article') + '.md';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      const menu = document.getElementById('downloadMenu');
+      if (menu) menu.classList.remove('open');
+    }
+
+    function downloadPdf() {
+      const menu = document.getElementById('downloadMenu');
+      if (menu) menu.classList.remove('open');
+      window.print();
+    }
+
     // --- Article Reader ---
     async function renderArticle(newsletter, slug) {
       const app = document.getElementById('app');
@@ -458,6 +670,7 @@ function generateHtml(): string {
 
       try {
         const article = await fetchJson('/api/articles/' + encodeURIComponent(newsletter) + '/' + encodeURIComponent(slug));
+        currentArticle = article;
 
         const date = new Date(article.post_date).toLocaleDateString('en-US', {
           year: 'numeric', month: 'long', day: 'numeric'
@@ -470,7 +683,20 @@ function generateHtml(): string {
         html += '<a class="back" href="#" onclick="event.preventDefault(); navigateTo(\\'/\\')">← Back to articles</a>';
         html += '<h1>' + escHtml(article.title) + '</h1>';
         if (article.subtitle) html += '<div class="subtitle">' + escHtml(article.subtitle) + '</div>';
-        html += '<div class="meta">' + escHtml(date) + ' · <a href="' + escHtml(article.canonical_url) + '" target="_blank">View on Substack</a></div>';
+        html += '<div class="meta" style="display:flex;align-items:center;justify-content:space-between;">';
+        html += '<span>' + escHtml(date) + ' · <a href="' + escHtml(article.canonical_url) + '" target="_blank">View on Substack</a></span>';
+        html += '<div class="download-wrapper">';
+        html += '  <button class="download-btn" onclick="toggleDownloadMenu(event)">';
+        html += '    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+        html += '    Download';
+        html += '    <span style="font-size:10px;opacity:0.6;">▼</span>';
+        html += '  </button>';
+        html += '  <div class="download-menu" id="downloadMenu">';
+        html += '    <button onclick="downloadMarkdown()"><span class="dl-icon">📝</span><span class="dl-label">Markdown</span><span class="dl-ext">.md</span></button>';
+        html += '    <button onclick="downloadPdf()"><span class="dl-icon">📄</span><span class="dl-label">PDF</span><span class="dl-ext">.pdf</span></button>';
+        html += '  </div>';
+        html += '</div>';
+        html += '</div>';
         html += '</div>';
         html += '<div class="article-body">' + bodyHtml + '</div>';
 
