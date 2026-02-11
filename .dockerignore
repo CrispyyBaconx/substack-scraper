@@ -1,0 +1,8 @@
+node_modules
+scraper.db
+.git
+.gitignore
+.cursor
+*.md
+repomix-output.xml
+dist

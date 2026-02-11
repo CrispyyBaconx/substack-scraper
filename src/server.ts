@@ -1,4 +1,4 @@
-import type { ServerWebSocket } from "bun";
+import type { Server, ServerWebSocket } from "bun";
 import {
   getAllArticles,
   getArticleBySlug,
@@ -10,6 +10,70 @@ import type { WsMessage } from "./types.ts";
 
 // Track all connected WebSocket clients
 const wsClients = new Set<ServerWebSocket<unknown>>();
+
+// ── Rate limiting by IP ──────────────────────────────────────────────
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 100; // per window per IP
+
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+let serverInstance: Server<unknown> | null = null;
+
+function getIP(req: Request): string {
+  // Prefer X-Forwarded-For when behind a reverse proxy
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0]!.trim();
+  return serverInstance?.requestIP(req)?.address ?? "unknown";
+}
+
+function checkRateLimit(req: Request): Response | null {
+  const ip = getIP(req);
+  const now = Date.now();
+
+  let entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    entry = { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+    rateLimitMap.set(ip, entry);
+  }
+
+  entry.count++;
+
+  const remaining = Math.max(0, RATE_LIMIT_MAX_REQUESTS - entry.count);
+  const resetSec = Math.ceil((entry.resetAt - now) / 1000);
+
+  if (entry.count > RATE_LIMIT_MAX_REQUESTS) {
+    return Response.json(
+      { error: "Too many requests" },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(resetSec),
+          "X-RateLimit-Limit": String(RATE_LIMIT_MAX_REQUESTS),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": String(resetSec),
+        },
+      }
+    );
+  }
+
+  return null; // allowed
+}
+
+/** Wrap a route handler with rate-limit checking. */
+function rl<T extends (...args: any[]) => any>(handler: T): T {
+  return ((...args: any[]) => {
+    const blocked = checkRateLimit(args[0] as Request);
+    if (blocked) return blocked;
+    return handler(...args);
+  }) as T;
+}
+
+// Periodically purge stale entries so the map doesn't grow unbounded
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of rateLimitMap) {
+    if (now > entry.resetAt) rateLimitMap.delete(ip);
+  }
+}, RATE_LIMIT_WINDOW_MS);
 
 /**
  * Broadcast a message to all connected WebSocket clients.
@@ -36,7 +100,7 @@ export function createServer(port: number) {
       // --- API routes ---
 
       "/api/articles": {
-        GET(_req) {
+        GET: rl((_req) => {
           const url = new URL(_req.url);
           const limit = parseInt(url.searchParams.get("limit") || "100");
           const offset = parseInt(url.searchParams.get("offset") || "0");
@@ -47,11 +111,11 @@ export function createServer(port: number) {
             : getAllArticles(limit, offset);
 
           return Response.json(articles);
-        },
+        }),
       },
 
       "/api/articles/:newsletter/:slug": {
-        GET(req) {
+        GET: rl((req) => {
           const { newsletter, slug } = req.params;
           const article = getArticleBySlug(
             decodeURIComponent(newsletter),
@@ -61,18 +125,18 @@ export function createServer(port: number) {
             return Response.json({ error: "Article not found" }, { status: 404 });
           }
           return Response.json(article);
-        },
+        }),
       },
 
       "/api/newsletters": {
-        GET() {
+        GET: rl(() => {
           const newsletters = getAllNewsletters();
           return Response.json(newsletters);
-        },
+        }),
       },
 
       "/api/stats": {
-        GET() {
+        GET: rl(() => {
           const newsletters = getAllNewsletters();
           const totalArticles = getArticleCount();
           return Response.json({
@@ -83,6 +147,12 @@ export function createServer(port: number) {
               articleCount: getArticleCount(),
             })),
           });
+        }),
+      },
+
+      "/health": {
+        GET: () => {
+          return Response.json({ status: "ok", uptime: process.uptime() });
         },
       },
     },
@@ -95,6 +165,10 @@ export function createServer(port: number) {
         if (success) return undefined;
         return new Response("WebSocket upgrade failed", { status: 400 });
       }
+
+      // Rate-limit non-route requests too
+      const blocked = checkRateLimit(req);
+      if (blocked) return blocked;
 
       const url = new URL(req.url);
 
@@ -123,6 +197,7 @@ export function createServer(port: number) {
     },
   });
 
+  serverInstance = server;
   console.log(`[server] listening on http://localhost:${port}`);
   return server;
 }
