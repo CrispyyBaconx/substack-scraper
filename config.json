@@ -1,7 +1,8 @@
 {
   "newsletters": [
     "https://example.substack.com",
-    "https://algorithmicsportsbetting.substack.com/"
+    "https://algorithmicsportsbetting.substack.com/",
+    "https://beyondcandlesticks.substack.com/"
   ],
   "pollIntervalMinutes": 15,
   "port": 3000
