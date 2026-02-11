@@ -13,7 +13,7 @@ const wsClients = new Set<ServerWebSocket<unknown>>();
 
 // ── Rate limiting by IP ──────────────────────────────────────────────
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 100; // per window per IP
+const RATE_LIMIT_MAX_REQUESTS = 50; // per window per IP
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 let serverInstance: Server<unknown> | null = null;
