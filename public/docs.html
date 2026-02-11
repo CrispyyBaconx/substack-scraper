@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Docs · Substack Scraper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --bg-card: #161b22;
+      --bg-hover: #1c2333;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #ff6719;
+      --accent-dim: rgba(255, 103, 25, 0.15);
+      --link: #58a6ff;
+      --green: #3fb950;
+      --red: #f85149;
+      --yellow: #d29922;
+      --blue: #58a6ff;
+      --font: "Geist Mono", monospace;
+      --radius: 8px;
+      --max-width: 780px;
+    }
+
+    [data-theme="light"] {
+      --bg: #ffffff;
+      --bg-card: #f6f8fa;
+      --bg-hover: #eef1f5;
+      --border: #d0d7de;
+      --text: #1f2328;
+      --text-muted: #656d76;
+      --accent: #e5550d;
+      --accent-dim: rgba(229, 85, 13, 0.12);
+      --link: #0969da;
+      --green: #1a7f37;
+      --red: #cf222e;
+      --yellow: #9a6700;
+      --blue: #0969da;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* --- Header --- */
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 100;
+    }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header h1 a { color: var(--text); }
+    .header h1 a:hover { color: var(--accent); text-decoration: none; }
+    .header .badge {
+      background: var(--accent-dim);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .header .spacer { flex: 1; }
+    .theme-toggle {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      cursor: pointer;
+      padding: 6px 10px;
+      font-size: 16px;
+      line-height: 1;
+    }
+    .theme-toggle:hover { background: var(--bg-hover); border-color: var(--accent); }
+
+    /* --- Layout --- */
+    .docs-layout {
+      display: flex;
+      max-width: 1080px;
+      margin: 0 auto;
+      min-height: calc(100vh - 57px);
+    }
+
+    /* --- Sidebar --- */
+    .sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      padding: 24px 16px;
+      position: sticky;
+      top: 57px;
+      height: calc(100vh - 57px);
+      overflow-y: auto;
+    }
+    .sidebar h3 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      margin-top: 20px;
+    }
+    .sidebar h3:first-child { margin-top: 0; }
+    .sidebar a {
+      display: block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--text-muted);
+      transition: background 0.1s, color 0.1s;
+    }
+    .sidebar a:hover {
+      background: var(--bg-hover);
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    /* --- Content --- */
+    .content {
+      flex: 1;
+      padding: 32px 40px;
+      max-width: 780px;
+      min-width: 0;
+    }
+
+    .content > h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .content > .lead {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    .content h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-top: 48px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .content h2:first-of-type { margin-top: 0; }
+
+    .content h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 32px;
+      margin-bottom: 12px;
+    }
+
+    .content p { margin-bottom: 12px; font-size: 14px; }
+
+    /* --- Endpoint block --- */
+    .endpoint {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .endpoint-header {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .method {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .method-get { background: rgba(63, 185, 80, 0.15); color: var(--green); }
+    .method-ws { background: rgba(88, 166, 255, 0.15); color: var(--blue); }
+    .endpoint-path {
+      font-size: 14px;
+      font-weight: 600;
+      word-break: break-all;
+    }
+    .endpoint-body {
+      padding: 16px;
+    }
+    .endpoint-body p {
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    /* --- Params table --- */
+    .params-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    .params-table th {
+      text-align: left;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .params-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .params-table tr:last-child td { border-bottom: none; }
+    .param-name { color: var(--accent); font-weight: 600; }
+    .param-type { color: var(--text-muted); font-size: 12px; }
+    .param-opt { color: var(--text-muted); font-style: italic; font-size: 12px; }
+
+    /* --- Code blocks --- */
+    pre {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 8px 0 12px;
+    }
+    code {
+      font-family: var(--font);
+      font-size: 0.92em;
+    }
+    p code, td code, li code {
+      background: var(--bg-hover);
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+
+    /* --- Tags --- */
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .tag-info { background: rgba(88, 166, 255, 0.15); color: var(--blue); }
+    .tag-warn { background: rgba(210, 153, 34, 0.15); color: var(--yellow); }
+
+    /* --- WS message type list --- */
+    .msg-type {
+      margin-bottom: 16px;
+    }
+    .msg-type-name {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    /* --- Responsive --- */
+    @media (max-width: 768px) {
+      .docs-layout { flex-direction: column; }
+      .sidebar {
+        width: 100%;
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 16px;
+      }
+      .content { padding: 24px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1><a href="/">Substack Scraper</a></h1>
+    <span class="badge">API Docs</span>
+    <div class="spacer"></div>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
+  </div>
+
+  <div class="docs-layout">
+    <nav class="sidebar">
+      <h3>Overview</h3>
+      <a href="#introduction">Introduction</a>
+      <a href="#base-url">Base URL</a>
+      <a href="#rate-limiting">Rate Limiting</a>
+
+      <h3>REST API</h3>
+      <a href="#get-articles">List Articles</a>
+      <a href="#get-article">Get Article</a>
+      <a href="#get-newsletters">List Newsletters</a>
+      <a href="#get-stats">Stats</a>
+      <a href="#health">Health Check</a>
+
+      <h3>WebSocket</h3>
+      <a href="#ws-connect">Connecting</a>
+      <a href="#ws-messages">Message Types</a>
+    </nav>
+
+    <main class="content">
+      <h1>API Documentation</h1>
+      <p class="lead">REST API and real-time WebSocket interface for the Substack Scraper.</p>
+
+      <!-- ─── Overview ─────────────────────────────── -->
+      <h2 id="introduction">Introduction</h2>
+      <p>All REST endpoints return JSON. The API is read-only — the scraper populates data automatically based on the configured newsletters.</p>
+      <p>Real-time updates (new articles, scrape events) are pushed over a WebSocket connection.</p>
+
+      <h2 id="base-url">Base URL</h2>
+      <pre>http://localhost:3000</pre>
+      <p>The port is configurable via <code>config.json</code>.</p>
+
+      <h2 id="rate-limiting">Rate Limiting</h2>
+      <p>All endpoints are rate-limited per IP address.</p>
+      <table class="params-table">
+        <tr><th>Header</th><th>Description</th></tr>
+        <tr>
+          <td><code>X-RateLimit-Limit</code></td>
+          <td>Maximum requests per window (default: <strong>100</strong>)</td>
+        </tr>
+        <tr>
+          <td><code>X-RateLimit-Remaining</code></td>
+          <td>Requests remaining in the current window</td>
+        </tr>
+        <tr>
+          <td><code>X-RateLimit-Reset</code></td>
+          <td>Seconds until the window resets</td>
+        </tr>
+        <tr>
+          <td><code>Retry-After</code></td>
+          <td>Seconds to wait (only on <code>429</code> responses)</td>
+        </tr>
+      </table>
+      <p>When the limit is exceeded, the server responds with:</p>
+      <pre>{
+  "error": "Too many requests"
+}</pre>
+      <p><span class="tag tag-info">429</span> — wait for <code>Retry-After</code> seconds before retrying.</p>
+
+      <!-- ─── REST Endpoints ───────────────────────── -->
+      <h2 id="get-articles">List Articles</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/api/articles</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Retrieve a paginated list of scraped articles, optionally filtered by newsletter.</p>
+          <table class="params-table">
+            <tr><th>Query Param</th><th>Type</th><th>Description</th></tr>
+            <tr>
+              <td class="param-name">limit</td>
+              <td class="param-type">integer</td>
+              <td>Max articles to return. <span class="param-opt">Default: 100</span></td>
+            </tr>
+            <tr>
+              <td class="param-name">offset</td>
+              <td class="param-type">integer</td>
+              <td>Number of articles to skip. <span class="param-opt">Default: 0</span></td>
+            </tr>
+            <tr>
+              <td class="param-name">newsletter</td>
+              <td class="param-type">string</td>
+              <td>Filter by newsletter URL. <span class="param-opt">Optional</span></td>
+            </tr>
+          </table>
+          <p><strong>Example</strong></p>
+          <pre>GET /api/articles?limit=10&amp;offset=0&amp;newsletter=https://example.substack.com</pre>
+          <p><strong>Response</strong> <span class="tag tag-info">200</span></p>
+          <pre>[
+  {
+    "id": 1,
+    "newsletter": "https://example.substack.com",
+    "slug": "my-first-post",
+    "title": "My First Post",
+    "subtitle": "A subtitle",
+    "canonical_url": "https://example.substack.com/p/my-first-post",
+    "post_date": "2025-01-15T12:00:00.000Z",
+    "content_html": "&lt;p&gt;...&lt;/p&gt;",
+    "content_markdown": "# My First Post\n...",
+    "scraped_at": "2025-01-15T13:00:00.000Z",
+    "notified": 1
+  }
+]</pre>
+        </div>
+      </div>
+
+      <h2 id="get-article">Get Article</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/api/articles/:newsletter/:slug</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Retrieve a single article by its newsletter URL and slug.</p>
+          <table class="params-table">
+            <tr><th>Path Param</th><th>Type</th><th>Description</th></tr>
+            <tr>
+              <td class="param-name">newsletter</td>
+              <td class="param-type">string</td>
+              <td>URL-encoded newsletter URL</td>
+            </tr>
+            <tr>
+              <td class="param-name">slug</td>
+              <td class="param-type">string</td>
+              <td>URL-encoded article slug</td>
+            </tr>
+          </table>
+          <p><strong>Example</strong></p>
+          <pre>GET /api/articles/https%3A%2F%2Fexample.substack.com/my-first-post</pre>
+          <p><strong>Response</strong> <span class="tag tag-info">200</span></p>
+          <pre>{
+  "id": 1,
+  "newsletter": "https://example.substack.com",
+  "slug": "my-first-post",
+  "title": "My First Post",
+  ...
+}</pre>
+          <p><strong>Not found</strong> <span class="tag tag-warn">404</span></p>
+          <pre>{ "error": "Article not found" }</pre>
+        </div>
+      </div>
+
+      <h2 id="get-newsletters">List Newsletters</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/api/newsletters</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Retrieve all configured newsletters.</p>
+          <p><strong>Response</strong> <span class="tag tag-info">200</span></p>
+          <pre>[
+  {
+    "url": "https://example.substack.com",
+    "name": "Example Newsletter",
+    "last_checked_at": "2025-01-15T13:00:00.000Z"
+  }
+]</pre>
+        </div>
+      </div>
+
+      <h2 id="get-stats">Stats</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/api/stats</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Retrieve aggregate statistics about scraped content.</p>
+          <p><strong>Response</strong> <span class="tag tag-info">200</span></p>
+          <pre>{
+  "totalArticles": 42,
+  "totalNewsletters": 3,
+  "newsletters": [
+    {
+      "url": "https://example.substack.com",
+      "name": "Example Newsletter",
+      "last_checked_at": "2025-01-15T13:00:00.000Z",
+      "articleCount": 42
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+
+      <h2 id="health">Health Check</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/health</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Simple health check endpoint. Not rate-limited.</p>
+          <p><strong>Response</strong> <span class="tag tag-info">200</span></p>
+          <pre>{
+  "status": "ok",
+  "uptime": 12345.678
+}</pre>
+        </div>
+      </div>
+
+      <!-- ─── WebSocket ────────────────────────────── -->
+      <h2 id="ws-connect">WebSocket — Connecting</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-ws">WS</span>
+          <span class="endpoint-path">ws://localhost:3000/ws</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Connect via a standard WebSocket upgrade request. Use <code>wss://</code> if running behind TLS.</p>
+          <p><strong>Example (JavaScript)</strong></p>
+          <pre>const ws = new WebSocket("ws://localhost:3000/ws");
+
+ws.onopen = () => {
+  console.log("Connected");
+};
+
+ws.onmessage = (event) => {
+  const msg = JSON.parse(event.data);
+  console.log(msg.type, msg);
+};
+
+ws.onclose = () => {
+  // Reconnect after a delay
+  setTimeout(() =&gt; connectWs(), 3000);
+};</pre>
+          <p>The server is send-only — client-to-server messages are ignored.</p>
+        </div>
+      </div>
+
+      <h2 id="ws-messages">WebSocket — Message Types</h2>
+      <p>All messages are JSON-encoded with a <code>type</code> field.</p>
+
+      <div class="endpoint">
+        <div class="endpoint-body">
+          <div class="msg-type">
+            <div class="msg-type-name"><code>new_article</code></div>
+            <p>Sent when a new article has been scraped and stored.</p>
+            <pre>{
+  "type": "new_article",
+  "article": {
+    "id": 1,
+    "newsletter": "https://example.substack.com",
+    "slug": "my-first-post",
+    "title": "My First Post",
+    "subtitle": "A subtitle",
+    "canonical_url": "https://example.substack.com/p/my-first-post",
+    "post_date": "2025-01-15T12:00:00.000Z",
+    "content_html": "&lt;p&gt;...&lt;/p&gt;",
+    "content_markdown": "# My First Post\n...",
+    "scraped_at": "2025-01-15T13:00:00.000Z",
+    "notified": 1
+  }
+}</pre>
+          </div>
+
+          <div class="msg-type">
+            <div class="msg-type-name"><code>scrape_started</code></div>
+            <p>Sent when the scraper begins checking a newsletter for new posts.</p>
+            <pre>{
+  "type": "scrape_started",
+  "newsletter": "https://example.substack.com"
+}</pre>
+          </div>
+
+          <div class="msg-type">
+            <div class="msg-type-name"><code>scrape_complete</code></div>
+            <p>Sent when the scraper finishes checking a newsletter.</p>
+            <pre>{
+  "type": "scrape_complete",
+  "newsletter": "https://example.substack.com",
+  "newCount": 3
+}</pre>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // Theme toggle (matches main app)
+    function getPreferredTheme() {
+      const stored = localStorage.getItem('theme');
+      if (stored) return stored;
+      return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    function applyTheme(theme) {
+      if (theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
+      const btn = document.getElementById('themeToggle');
+      if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+    }
+    function toggleTheme() {
+      const current = document.documentElement.hasAttribute('data-theme') ? 'light' : 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', next);
+      applyTheme(next);
+    }
+    applyTheme(getPreferredTheme());
+
+    // Smooth scroll for sidebar links
+    document.querySelectorAll('.sidebar a[href^="#"]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = link.getAttribute('href').slice(1);
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.replaceState(null, '', '#' + id);
+      });
+    });
+  </script>
+</body>
+</html>

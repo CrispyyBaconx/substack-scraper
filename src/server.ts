@@ -155,6 +155,10 @@ export function createServer(port: number) {
           return Response.json({ status: "ok", uptime: process.uptime() });
         },
       },
+
+      "/docs": {
+        GET: () => new Response(Bun.file("public/docs.html")),
+      },
     },
 
     // Catch-all for SPA routing — serve static files or the SPA shell
