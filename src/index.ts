@@ -3,11 +3,13 @@ import { createServer, broadcast } from "./server.ts";
 import { startPolling } from "./scraper.ts";
 import { ConfigSchema } from "./types.ts";
 
+export const DATA_DIR = process.env.DATA_DIR || ".";
+
 // --- Load config ---
-const configFile = Bun.file("config.json");
+const configFile = Bun.file(`${DATA_DIR}/config.json`);
 if (!(await configFile.exists())) {
-  console.error("Missing config.json — copy the example and edit it:");
-  console.error('  cp config.json.example config.json');
+  console.error(`Missing ${DATA_DIR}/config.json — copy the example and edit it:`);
+  console.error(`  cp config.json.example ${DATA_DIR}/config.json`);
   process.exit(1);
 }
 

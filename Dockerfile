@@ -9,9 +9,12 @@ RUN bun install --frozen-lockfile --production
 # Final image
 FROM base
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json bun.lock tsconfig.json config.json ./
+COPY package.json bun.lock tsconfig.json ./
 COPY src/ ./src/
 COPY public/ ./public/
+
+ENV DATA_DIR=/data
+RUN mkdir -p /data
 
 EXPOSE 3000
 

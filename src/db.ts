@@ -1,11 +1,13 @@
 import { Database } from "bun:sqlite";
 import type { DbArticle, DbNewsletter } from "./types.ts";
 
+const DATA_DIR = process.env.DATA_DIR || ".";
+
 let db: Database;
 
 export function getDb(): Database {
   if (!db) {
-    db = new Database("scraper.db", { create: true });
+    db = new Database(`${DATA_DIR}/scraper.db`, { create: true });
     db.exec("PRAGMA journal_mode = WAL");
     db.exec("PRAGMA foreign_keys = ON");
     initSchema();
