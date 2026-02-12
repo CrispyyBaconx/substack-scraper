@@ -2,6 +2,8 @@ import type { DbArticle } from "./types.ts";
 
 const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || "";
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+const ROLE_ID = "1471279286718824654";
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface DiscordEmbed {
   title: string;
@@ -21,6 +23,13 @@ export async function notifyDiscord(article: DbArticle): Promise<boolean> {
     return false;
   }
 
+  // Skip notification for articles older than one week
+  const postAge = Date.now() - new Date(article.post_date).getTime();
+  if (postAge > ONE_WEEK_MS) {
+    console.log(`[discord] skipping old article (${Math.round(postAge / 86400000)}d old): ${article.title}`);
+    return true; // return true so it gets marked as notified and won't retry
+  }
+
   const articleUrl = `${BASE_URL}/article/${encodeURIComponent(article.newsletter)}/${encodeURIComponent(article.slug)}`;
 
   const embed: DiscordEmbed = {
@@ -33,7 +42,7 @@ export async function notifyDiscord(article: DbArticle): Promise<boolean> {
   };
 
   const body = {
-    content: `📰 New article from **${article.newsletter}**`,
+    content: `<@&${ROLE_ID}> 📰 New article from **${article.newsletter}**`,
     embeds: [embed],
   };
 
