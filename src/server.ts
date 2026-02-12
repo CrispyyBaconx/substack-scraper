@@ -8,15 +8,36 @@ import {
 } from "./db.ts";
 import type { WsMessage } from "./types.ts";
 
-// Track all connected WebSocket clients
-const wsClients = new Set<ServerWebSocket<unknown>>();
+// ── WebSocket heartbeat ─────────────────────────────────────────────
+type WsData = { isAlive: boolean };
+
+const HEARTBEAT_INTERVAL_MS = 30_000; // ping every 30 s
+const wsClients = new Set<ServerWebSocket<WsData>>();
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+
+function startHeartbeat() {
+  if (heartbeatTimer) return;
+  heartbeatTimer = setInterval(() => {
+    for (const ws of wsClients) {
+      if (!ws.data || !ws.data.isAlive) {
+        // Missed the last pong — terminate
+        console.log(`[ws] terminating unresponsive client (${wsClients.size - 1} remaining)`);
+        wsClients.delete(ws);
+        ws.close(1001, "Ping timeout");
+        continue;
+      }
+      ws.data.isAlive = false;
+      ws.ping();
+    }
+  }, HEARTBEAT_INTERVAL_MS);
+}
 
 // ── Rate limiting by IP ──────────────────────────────────────────────
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 50; // per window per IP
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-let serverInstance: Server<unknown> | null = null;
+let serverInstance: Server<WsData> | null = null;
 
 function getIP(req: Request): string {
   // Prefer X-Forwarded-For when behind a reverse proxy
@@ -93,7 +114,7 @@ export function broadcast(msg: WsMessage): void {
  * Create and start the Bun web server.
  */
 export function createServer(port: number) {
-  const server = Bun.serve({
+  const server = Bun.serve<WsData>({
     port,
 
     routes: {
@@ -165,7 +186,7 @@ export function createServer(port: number) {
     fetch(req, server) {
       // Upgrade WebSocket connections
       if (req.headers.get("upgrade") === "websocket") {
-        const success = server.upgrade(req);
+        const success = server.upgrade(req, { data: { isAlive: true } });
         if (success) return undefined;
         return new Response("WebSocket upgrade failed", { status: 400 });
       }
@@ -187,16 +208,29 @@ export function createServer(port: number) {
     },
 
     websocket: {
+      idleTimeout: 60, // close if no data at all for 60 s (safety net)
+      sendPings: false, // we handle pings ourselves via the heartbeat
       open(ws) {
+        if (!ws.data) (ws as any).data = { isAlive: true };
+        ws.data.isAlive = true;
         wsClients.add(ws);
+        startHeartbeat();
         console.log(`[ws] client connected (${wsClients.size} total)`);
       },
       message(_ws, _message) {
         // No client->server messages needed for now
       },
+      pong(ws) {
+        if (ws.data) ws.data.isAlive = true;
+      },
       close(ws) {
         wsClients.delete(ws);
         console.log(`[ws] client disconnected (${wsClients.size} total)`);
+        // Stop heartbeat if no clients remain
+        if (wsClients.size === 0 && heartbeatTimer) {
+          clearInterval(heartbeatTimer);
+          heartbeatTimer = null;
+        }
       },
     },
   });

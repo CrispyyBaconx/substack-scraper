@@ -16,6 +16,6 @@ COPY public/ ./public/
 ENV DATA_DIR=/data
 RUN mkdir -p /data
 
-EXPOSE 3000
+EXPOSE 8946
 
 CMD ["bun", "run", "src/index.ts"]

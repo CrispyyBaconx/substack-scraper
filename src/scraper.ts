@@ -16,11 +16,11 @@ type BroadcastFn = (msg: WsMessage) => void;
 
 /**
  * Scrape a single newsletter: fetch archive, find new articles, scrape content,
- * store in DB, and optionally send a grouped Discord notification.
+ * store in DB, and send Discord notifications for articles not yet notified.
  */
 export async function scrapeNewsletter(
   newsletterUrl: string,
-  options: { notify: boolean; broadcast?: BroadcastFn }
+  options: { broadcast?: BroadcastFn } = {}
 ): Promise<DbArticle[]> {
   const name = client.extractNewsletterName(newsletterUrl);
   console.log(`[scraper] checking ${name} (${newsletterUrl})`);
@@ -69,13 +69,10 @@ export async function scrapeNewsletter(
 
       scraped.push(row);
 
-      // Send Discord notification (skip on first cycle)
-      if (options.notify) {
+      // Send Discord notification if not already notified (checked via DB)
+      if (!row.notified) {
         const sent = await notifyDiscord(row);
         if (sent) markNotified(row.id);
-      } else {
-        // First cycle: mark as notified so they don't re-trigger later
-        markNotified(row.id);
       }
 
       // Broadcast to WebSocket clients
@@ -90,10 +87,6 @@ export async function scrapeNewsletter(
     }
   }
 
-  if (!options.notify && scraped.length > 0) {
-    console.log(`[scraper] first cycle — skipped Discord for ${scraped.length} article(s)`);
-  }
-
   updateNewsletterChecked(newsletterUrl);
   options.broadcast?.({ type: "scrape_complete", newsletter: name, newCount: scraped.length });
 
@@ -105,9 +98,9 @@ export async function scrapeNewsletter(
  */
 export async function pollAll(
   config: Config,
-  options: { notify: boolean; broadcast?: BroadcastFn }
+  options: { broadcast?: BroadcastFn } = {}
 ): Promise<void> {
-  console.log(`[scraper] starting poll cycle (${config.newsletters.length} newsletter(s))${options.notify ? "" : " [first run, notifications suppressed]"}`);
+  console.log(`[scraper] starting poll cycle (${config.newsletters.length} newsletter(s))`);
 
   for (const url of config.newsletters) {
     try {
@@ -122,7 +115,7 @@ export async function pollAll(
 
 /**
  * Start the persistent polling loop.
- * The first cycle skips Discord notifications (backfill).
+ * Notifications are determined by the DB `notified` column, not cycle order.
  */
 export function startPolling(
   config: Config,
@@ -133,15 +126,15 @@ export function startPolling(
 
   console.log(`[scraper] polling every ${config.pollIntervalMinutes} min`);
 
-  // First cycle: scrape but don't notify (backfill existing articles)
-  pollAll(config, { notify: false, broadcast }).catch((err) =>
+  // Initial cycle
+  pollAll(config, { broadcast }).catch((err) =>
     console.error("[scraper] initial poll failed:", err)
   );
 
-  // Subsequent cycles: notify on new articles
+  // Subsequent cycles
   const timer = setInterval(() => {
     if (!running) return;
-    pollAll(config, { notify: true, broadcast }).catch((err) =>
+    pollAll(config, { broadcast }).catch((err) =>
       console.error("[scraper] poll failed:", err)
     );
   }, intervalMs);

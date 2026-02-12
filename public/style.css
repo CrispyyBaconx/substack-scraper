@@ -66,23 +66,66 @@ a:hover { text-decoration: underline; }
   font-weight: 600;
 }
 .header .spacer { flex: 1; }
-.theme-toggle {
+
+/* --- Search bar --- */
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 360px;
+}
+.search-wrapper .search-icon {
+  position: absolute;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.search-wrapper input {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 7px 12px 7px 32px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.search-wrapper input::placeholder { color: var(--text-muted); }
+.search-wrapper input:focus {
+  border-color: var(--accent);
+  background: var(--bg);
+}
+.header-btn, .theme-toggle {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
   cursor: pointer;
   padding: 6px 10px;
-  font-size: 16px;
+  font-size: 13px;
+  font-family: var(--font);
   line-height: 1;
   transition: background 0.15s, border-color 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
+  text-decoration: none;
+  gap: 4px;
 }
-.theme-toggle:hover {
+.theme-toggle { font-size: 16px; }
+.header-btn:hover, .theme-toggle:hover {
   background: var(--bg-hover);
   border-color: var(--accent);
+  text-decoration: none;
 }
 
 .header .live-dot {
@@ -101,6 +144,136 @@ a:hover { text-decoration: underline; }
   max-width: var(--max-width);
   margin: 0 auto;
   padding: 24px;
+}
+
+/* --- Dashboard layout with sidebar --- */
+.dashboard-layout {
+  display: flex;
+  gap: 0;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0;
+}
+.sort-sidebar {
+  width: 180px;
+  flex-shrink: 0;
+  padding: 24px 0 24px 24px;
+  position: sticky;
+  top: 57px; /* header height */
+  align-self: flex-start;
+  height: fit-content;
+}
+.sort-sidebar h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.sort-sidebar .sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  text-align: left;
+}
+.sort-sidebar .sort-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.sort-sidebar .sort-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.sort-sidebar .sort-icon {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.sort-sidebar .nl-list {
+  margin-top: 12px;
+}
+.sort-sidebar .nl-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 12px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sort-sidebar .nl-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.sort-sidebar .nl-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.sort-sidebar .nl-count {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.dashboard-main {
+  flex: 1;
+  min-width: 0;
+  padding: 24px;
+}
+@media (max-width: 700px) {
+  .dashboard-layout {
+    flex-direction: column;
+  }
+  .sort-sidebar {
+    width: 100%;
+    position: static;
+    padding: 16px 16px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+  .sort-sidebar h3 {
+    width: 100%;
+    margin-bottom: 4px;
+  }
+  .sort-sidebar .nl-list {
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    width: 100%;
+  }
+  .sort-sidebar .nl-btn {
+    width: auto;
+  }
+  .dashboard-main {
+    padding: 16px;
+  }
 }
 
 /* --- Dashboard --- */

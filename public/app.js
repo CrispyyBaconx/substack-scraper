@@ -55,10 +55,155 @@ async function fetchJson(url) {
   return res.json();
 }
 
+// --- Dashboard state ---
+let cachedArticles = [];
+let cachedNewsletters = [];
+let nameMap = {};
+let sortMode = 'newsletter'; // 'newsletter' | 'recent'
+let filterNewsletter = null; // null = all, or a newsletter URL
+
+function getSearchQuery() {
+  const input = document.getElementById('searchInput');
+  return input ? input.value.trim().toLowerCase() : '';
+}
+
+function filterAndSort(articles) {
+  let filtered = articles;
+
+  // Text search
+  const q = getSearchQuery();
+  if (q) {
+    filtered = filtered.filter(a => {
+      const name = (nameMap[a.newsletter] || a.newsletter).toLowerCase();
+      return a.title.toLowerCase().includes(q)
+        || (a.subtitle && a.subtitle.toLowerCase().includes(q))
+        || name.includes(q);
+    });
+  }
+
+  // Newsletter filter
+  if (filterNewsletter) {
+    filtered = filtered.filter(a => a.newsletter === filterNewsletter);
+  }
+
+  return filtered;
+}
+
+function renderArticleList(articles) {
+  const filtered = filterAndSort(articles);
+
+  if (filtered.length === 0) {
+    return '<div class="empty">No matching articles found.</div>';
+  }
+
+  let html = '';
+
+  if (sortMode === 'newsletter') {
+    // Group by newsletter
+    const groups = {};
+    for (const a of filtered) {
+      if (!groups[a.newsletter]) groups[a.newsletter] = [];
+      groups[a.newsletter].push(a);
+    }
+    const sortedKeys = Object.keys(groups).sort((a, b) =>
+      (nameMap[a] || a).localeCompare(nameMap[b] || b)
+    );
+    for (const nlUrl of sortedKeys) {
+      const arts = groups[nlUrl];
+      const name = nameMap[nlUrl] || nlUrl;
+      html += '<div class="newsletter-group">';
+      html += '<h2>' + escHtml(name) + ' (' + arts.length + ')</h2>';
+      for (const a of arts) {
+        html += renderCard(a);
+      }
+      html += '</div>';
+    }
+  } else {
+    // Sort by most recent
+    const sorted = [...filtered].sort((a, b) =>
+      new Date(b.post_date).getTime() - new Date(a.post_date).getTime()
+    );
+    for (const a of sorted) {
+      html += renderCard(a, true);
+    }
+  }
+
+  return html;
+}
+
+function renderCard(a, showNewsletter) {
+  const date = new Date(a.post_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  let html = '<div class="article-card" onclick="navigateTo(\'/article/' + encodeURIComponent(a.newsletter) + '/' + encodeURIComponent(a.slug) + '\')">';
+  html += '<div class="title">' + escHtml(a.title) + '</div>';
+  if (a.subtitle) html += '<div class="subtitle">' + escHtml(a.subtitle) + '</div>';
+  html += '<div class="meta">' + escHtml(date);
+  if (showNewsletter) html += ' · ' + escHtml(nameMap[a.newsletter] || a.newsletter);
+  html += '</div>';
+  html += '</div>';
+  return html;
+}
+
+function buildSidebar(newsletters, articles) {
+  // Count articles per newsletter
+  const counts = {};
+  for (const a of articles) {
+    counts[a.newsletter] = (counts[a.newsletter] || 0) + 1;
+  }
+
+  let html = '<div class="sort-sidebar">';
+  html += '<h3>Sort</h3>';
+  html += '<button class="sort-btn' + (sortMode === 'newsletter' ? ' active' : '') + '" onclick="setSort(\'newsletter\')">';
+  html += '<span class="sort-icon">📰</span> By Newsletter</button>';
+  html += '<button class="sort-btn' + (sortMode === 'recent' ? ' active' : '') + '" onclick="setSort(\'recent\')">';
+  html += '<span class="sort-icon">🕐</span> Recently Added</button>';
+
+  html += '<h3 style="margin-top:20px;">Newsletters</h3>';
+  html += '<div class="nl-list">';
+  html += '<button class="nl-btn' + (!filterNewsletter ? ' active' : '') + '" onclick="setNewsletterFilter(null)">All <span class="nl-count">' + articles.length + '</span></button>';
+
+  const sorted = [...newsletters].sort((a, b) => (a.name || a.url).localeCompare(b.name || b.url));
+  for (const n of sorted) {
+    const count = counts[n.url] || 0;
+    const active = filterNewsletter === n.url ? ' active' : '';
+    html += '<button class="nl-btn' + active + '" onclick="setNewsletterFilter(\'' + escHtml(n.url).replace(/'/g, "\\'") + '\')" title="' + escHtml(n.name || n.url) + '">';
+    html += escHtml(n.name || n.url) + ' <span class="nl-count">' + count + '</span></button>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function rerenderDashboard() {
+  const main = document.querySelector('.dashboard-main');
+  if (main) main.innerHTML = renderArticleList(cachedArticles);
+  // Update sidebar active states
+  const sidebar = document.querySelector('.sort-sidebar');
+  if (sidebar) {
+    sidebar.outerHTML = buildSidebar(cachedNewsletters, cachedArticles);
+  }
+  // Update article count badge
+  const filtered = filterAndSort(cachedArticles);
+  document.getElementById('articleCount').textContent = filtered.length + ' articles';
+}
+
+function setSort(mode) {
+  sortMode = mode;
+  rerenderDashboard();
+}
+
+function setNewsletterFilter(nlUrl) {
+  filterNewsletter = nlUrl;
+  rerenderDashboard();
+}
+
 // --- Dashboard ---
 async function renderDashboard() {
   currentArticle = null;
   const app = document.getElementById('app');
+  app.className = 'container';
+
+  // Show/hide search bar
+  document.getElementById('searchWrapper').style.display = 'flex';
+
   app.innerHTML = '<div class="loading">Loading articles...</div>';
 
   try {
@@ -67,6 +212,11 @@ async function renderDashboard() {
       fetchJson('/api/newsletters'),
     ]);
 
+    cachedArticles = articles;
+    cachedNewsletters = newsletters;
+    nameMap = {};
+    for (const n of newsletters) nameMap[n.url] = n.name;
+
     document.getElementById('articleCount').textContent = articles.length + ' articles';
 
     if (articles.length === 0) {
@@ -74,32 +224,13 @@ async function renderDashboard() {
       return;
     }
 
-    // Group by newsletter
-    const groups = {};
-    for (const a of articles) {
-      if (!groups[a.newsletter]) groups[a.newsletter] = [];
-      groups[a.newsletter].push(a);
-    }
-
-    let html = '';
-    // Find names
-    const nameMap = {};
-    for (const n of newsletters) nameMap[n.url] = n.name;
-
-    for (const [nlUrl, arts] of Object.entries(groups)) {
-      const name = nameMap[nlUrl] || nlUrl;
-      html += '<div class="newsletter-group">';
-      html += '<h2>' + escHtml(name) + ' (' + arts.length + ')</h2>';
-      for (const a of arts) {
-        const date = new Date(a.post_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-        html += '<div class="article-card" onclick="navigateTo(\'/article/' + encodeURIComponent(a.newsletter) + '/' + encodeURIComponent(a.slug) + '\')">';
-        html += '<div class="title">' + escHtml(a.title) + '</div>';
-        if (a.subtitle) html += '<div class="subtitle">' + escHtml(a.subtitle) + '</div>';
-        html += '<div class="meta">' + escHtml(date) + '</div>';
-        html += '</div>';
-      }
-      html += '</div>';
-    }
+    // Build layout with sidebar
+    app.className = '';
+    let html = '<div class="dashboard-layout">';
+    html += buildSidebar(newsletters, articles);
+    html += '<div class="dashboard-main">';
+    html += renderArticleList(articles);
+    html += '</div></div>';
 
     app.innerHTML = html;
   } catch (err) {
@@ -154,6 +285,9 @@ function downloadPdf() {
 // --- Article Reader ---
 async function renderArticle(newsletter, slug) {
   const app = document.getElementById('app');
+  app.className = 'container';
+  // Hide search bar on article view
+  document.getElementById('searchWrapper').style.display = 'none';
   app.innerHTML = '<div class="loading">Loading article...</div>';
 
   try {
@@ -271,6 +405,20 @@ function showToast(text) {
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 5000);
 }
+
+// --- Search input ---
+(function () {
+  let debounceTimer;
+  const input = document.getElementById('searchInput');
+  if (input) {
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (cachedArticles.length) rerenderDashboard();
+      }, 150);
+    });
+  }
+})();
 
 // --- Init ---
 route();

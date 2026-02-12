@@ -1,9 +1,12 @@
 {
   "newsletters": [
-    "https://example.substack.com",
     "https://algorithmicsportsbetting.substack.com/",
-    "https://beyondcandlesticks.substack.com/"
+    "https://beyondcandlesticks.substack.com/",
+    "https://blog.tradingriot.com/",
+    "https://www.scimitar.capital/",
+    "https://robertspence.substack.com/",
+    "https://www.algos.org/"
   ],
   "pollIntervalMinutes": 15,
-  "port": 3000
+  "port": 8946
 }

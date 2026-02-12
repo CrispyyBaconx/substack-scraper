@@ -14,7 +14,12 @@
     <h1 onclick="navigateTo('/')">Substack Scraper</h1>
     <div class="live-dot" id="liveDot" title="Live"></div>
     <span class="badge" id="articleCount">...</span>
+    <div class="search-wrapper" id="searchWrapper">
+      <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="searchInput" placeholder="Search articles or newsletters…" autocomplete="off" spellcheck="false">
+    </div>
     <div class="spacer"></div>
+    <a href="/docs" class="header-btn" title="API Documentation">📖 Docs</a>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
   </div>
   <div class="container" id="app">

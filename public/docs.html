@@ -306,7 +306,6 @@
     <nav class="sidebar">
       <h3>Overview</h3>
       <a href="#introduction">Introduction</a>
-      <a href="#base-url">Base URL</a>
       <a href="#rate-limiting">Rate Limiting</a>
 
       <h3>REST API</h3>
@@ -329,10 +328,6 @@
       <h2 id="introduction">Introduction</h2>
       <p>All REST endpoints return JSON. The API is read-only — the scraper populates data automatically based on the configured newsletters.</p>
       <p>Real-time updates (new articles, scrape events) are pushed over a WebSocket connection.</p>
-
-      <h2 id="base-url">Base URL</h2>
-      <pre>http://localhost:3000</pre>
-      <p>The port is configurable via <code>config.json</code>.</p>
 
       <h2 id="rate-limiting">Rate Limiting</h2>
       <p>All endpoints are rate-limited per IP address.</p>
