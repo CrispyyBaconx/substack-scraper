@@ -159,14 +159,14 @@ function buildSidebar(newsletters, articles) {
 
   html += '<h3 style="margin-top:20px;">Newsletters</h3>';
   html += '<div class="nl-list">';
-  html += '<button class="nl-btn' + (!filterNewsletter ? ' active' : '') + '" onclick="setNewsletterFilter(null)">All <span class="nl-count">' + articles.length + '</span></button>';
+  html += '<button class="nl-btn' + (!filterNewsletter ? ' active' : '') + '" onclick="setNewsletterFilter(null)"><span class="nl-name">All</span><span class="nl-count">' + articles.length + '</span></button>';
 
   const sorted = [...newsletters].sort((a, b) => (a.name || a.url).localeCompare(b.name || b.url));
   for (const n of sorted) {
     const count = counts[n.url] || 0;
     const active = filterNewsletter === n.url ? ' active' : '';
     html += '<button class="nl-btn' + active + '" onclick="setNewsletterFilter(\'' + escHtml(n.url).replace(/'/g, "\\'") + '\')" title="' + escHtml(n.name || n.url) + '">';
-    html += escHtml(n.name || n.url) + ' <span class="nl-count">' + count + '</span></button>';
+    html += '<span class="nl-name">' + escHtml(n.name || n.url) + '</span><span class="nl-count">' + count + '</span></button>';
   }
   html += '</div></div>';
   return html;

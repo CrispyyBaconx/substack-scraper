@@ -150,12 +150,12 @@ a:hover { text-decoration: underline; }
 .dashboard-layout {
   display: flex;
   gap: 0;
-  max-width: 960px;
+  max-width: 1040px;
   margin: 0 auto;
   padding: 0;
 }
 .sort-sidebar {
-  width: 180px;
+  width: 230px;
   flex-shrink: 0;
   padding: 24px 0 24px 24px;
   position: sticky;
@@ -220,9 +220,14 @@ a:hover { text-decoration: underline; }
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   text-align: left;
-  white-space: nowrap;
+  min-width: 0;
+}
+.sort-sidebar .nl-name {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 .sort-sidebar .nl-btn:hover {
   background: var(--bg-hover);
