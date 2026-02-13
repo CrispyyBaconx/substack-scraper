@@ -114,6 +114,14 @@ export async function pollAll(
 }
 
 /**
+ * Return a jittered delay: base ± up to 25%, so polls aren't metronomic.
+ */
+function jitteredDelay(baseMs: number): number {
+  const jitter = baseMs * 0.25; // ±25 %
+  return baseMs + (Math.random() * 2 - 1) * jitter;
+}
+
+/**
  * Start the persistent polling loop.
  * Notifications are determined by the DB `notified` column, not cycle order.
  */
@@ -121,28 +129,36 @@ export function startPolling(
   config: Config,
   broadcast?: BroadcastFn
 ): { stop: () => void } {
-  const intervalMs = config.pollIntervalMinutes * 60 * 1000;
+  const baseMs = config.pollIntervalMinutes * 60 * 1000;
   let running = true;
+  let timer: ReturnType<typeof setTimeout> | null = null;
 
-  console.log(`[scraper] polling every ${config.pollIntervalMinutes} min`);
+  console.log(`[scraper] polling every ~${config.pollIntervalMinutes} min (±25 % jitter)`);
 
-  // Initial cycle
-  pollAll(config, { broadcast }).catch((err) =>
-    console.error("[scraper] initial poll failed:", err)
-  );
-
-  // Subsequent cycles
-  const timer = setInterval(() => {
+  function scheduleNext() {
     if (!running) return;
-    pollAll(config, { broadcast }).catch((err) =>
-      console.error("[scraper] poll failed:", err)
-    );
-  }, intervalMs);
+    const delay = jitteredDelay(baseMs);
+    console.log(`[scraper] next poll in ${(delay / 60000).toFixed(1)} min`);
+    timer = setTimeout(async () => {
+      if (!running) return;
+      try {
+        await pollAll(config, { broadcast });
+      } catch (err) {
+        console.error("[scraper] poll failed:", err);
+      }
+      scheduleNext();
+    }, delay);
+  }
+
+  // Initial cycle, then schedule the next one
+  pollAll(config, { broadcast })
+    .catch((err) => console.error("[scraper] initial poll failed:", err))
+    .finally(() => scheduleNext());
 
   return {
     stop() {
       running = false;
-      clearInterval(timer);
+      if (timer) clearTimeout(timer);
     },
   };
 }

@@ -1,7 +1,6 @@
 import type { DbArticle } from "./types.ts";
 
 const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || "";
-const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 const ROLE_ID = "1471279286718824654";
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -12,6 +11,34 @@ interface DiscordEmbed {
   color?: number;
   timestamp?: string;
   footer?: { text: string };
+}
+
+/**
+ * Derive a short, human-friendly name from a newsletter URL.
+ *
+ *   https://blahblah.substack.com  →  "blahblah"
+ *   https://www.oreo.com           →  "oreo"
+ *   https://blog.tradingriot.com   →  "tradingriot"
+ *   https://www.algos.org          →  "algos"
+ */
+function friendlyName(newsletterUrl: string): string {
+  try {
+    const hostname = new URL(newsletterUrl).hostname;
+
+    // substack subdomain → the subdomain *is* the name
+    if (hostname.endsWith(".substack.com")) {
+      return hostname.replace(".substack.com", "");
+    }
+
+    // Custom domain – take the part just before the TLD
+    // e.g. blog.tradingriot.com → ["blog","tradingriot","com"] → "tradingriot"
+    //      www.oreo.com         → ["www","oreo","com"]         → "oreo"
+    //      oreo.com             → ["oreo","com"]               → "oreo"
+    const parts = hostname.split(".");
+    return parts.length >= 2 ? parts[parts.length - 2]! : hostname;
+  } catch {
+    return newsletterUrl;
+  }
 }
 
 /**
@@ -30,19 +57,19 @@ export async function notifyDiscord(article: DbArticle): Promise<boolean> {
     return true; // return true so it gets marked as notified and won't retry
   }
 
-  const articleUrl = `${BASE_URL}/article/${encodeURIComponent(article.newsletter)}/${encodeURIComponent(article.slug)}`;
+  const name = friendlyName(article.newsletter);
 
   const embed: DiscordEmbed = {
     title: article.title,
     description: article.subtitle || undefined,
-    url: articleUrl,
+    url: article.canonical_url, // link directly to the article on Substack
     color: 0xff6719, // Substack orange
     timestamp: article.post_date,
     footer: { text: article.newsletter },
   };
 
   const body = {
-    content: `<@&${ROLE_ID}> 📰 New article from **${article.newsletter}**`,
+    content: `<@&${ROLE_ID}> 📰 New article from [**${name}**](${article.newsletter})`,
     embeds: [embed],
   };
 
