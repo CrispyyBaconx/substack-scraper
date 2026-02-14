@@ -1,6 +1,7 @@
 import type { DbArticle } from "./types.ts";
 
 const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || "";
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 const ROLE_ID = "1471279286718824654";
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -58,18 +59,19 @@ export async function notifyDiscord(article: DbArticle): Promise<boolean> {
   }
 
   const name = friendlyName(article.newsletter);
+  const articleUrl = `${BASE_URL}/article/${encodeURIComponent(article.newsletter)}/${encodeURIComponent(article.slug)}`;
 
   const embed: DiscordEmbed = {
     title: article.title,
     description: article.subtitle || undefined,
-    url: article.canonical_url, // link directly to the article on Substack
+    url: articleUrl, // link to article on our site
     color: 0xff6719, // Substack orange
     timestamp: article.post_date,
     footer: { text: article.newsletter },
   };
 
   const body = {
-    content: `<@&${ROLE_ID}> 📰 New article from [**${name}**](${article.newsletter})`,
+    content: `<@&${ROLE_ID}> 📰 New [article](${articleUrl}) from **${name}**`,
     embeds: [embed],
   };
 
