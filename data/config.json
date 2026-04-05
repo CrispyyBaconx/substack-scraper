@@ -5,7 +5,8 @@
     "https://blog.tradingriot.com/",
     "https://www.scimitar.capital/",
     "https://robertspence.substack.com/",
-    "https://www.algos.org/"
+    "https://www.algos.org/",
+    "https://robotjames.substack.com/"
   ],
   "pollIntervalMinutes": 15,
   "port": 8946
