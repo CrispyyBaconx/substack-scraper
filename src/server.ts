@@ -237,7 +237,7 @@ export function createServer(port: number) {
   });
 
   serverInstance = server;
-  console.log(`[server] listening on http://localhost:${port}`);
+  console.log(`[server] listening on http://${server.hostname}:${server.port}`);
   return server;
 }
 
