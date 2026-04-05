@@ -116,6 +116,7 @@ export function broadcast(msg: WsMessage): void {
 export function createServer(port: number) {
   const server = Bun.serve<WsData>({
     port,
+    hostname: "0.0.0.0",
 
     routes: {
       // --- API routes ---
